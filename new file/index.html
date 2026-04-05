@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Skeptic Human Entity 3.0</title>
+    <style>
+        body { background: #000; margin: 0; display: flex; height: 100vh; font-family: 'Arial', sans-serif; overflow: hidden; }
+        
+        /* 左侧：真人视频区 */
+        #video-container { flex: 1.5; position: relative; background: #050505; display: flex; justify-content: center; align-items: center; }
+        video { height: 100%; width: 100%; object-fit: cover; transition: opacity 0.5s; }
+        .hidden { opacity: 0; position: absolute; }
+
+        /* 覆盖层：状态与字幕 */
+        #overlay { position: absolute; bottom: 50px; width: 100%; text-align: center; z-index: 10; }
+        #status-tag { background: rgba(255,0,0,0.7); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; letter-spacing: 2px; }
+        #subtitle { color: white; font-size: 1.5rem; margin-top: 20px; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.5); display: inline-block; padding: 10px 20px; border-radius: 10px; }
+
+        /* 右侧：对话区 */
+        #chat-pane { flex: 1; background: #111; display: flex; flex-direction: column; padding: 30px; border-left: 2px solid #222; }
+        #history { flex: 1; overflow-y: auto; color: #ccc; margin-bottom: 20px; }
+        .msg { margin-bottom: 15px; padding: 12px; border-radius: 5px; }
+        .ai-msg { background: #222; border-left: 4px solid red; }
+        .user-msg { background: #0056b3; align-self: flex-end; }
+        
+        button { padding: 20px; background: red; color: white; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+        button:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+<div id="video-container">
+    <video id="v-idle" autoplay loop muted poster="loading.jpg">
+        <source src="idle.mp4" type="video/mp4">
+    </video>
+    <video id="v-talk" loop muted class="hidden">
+        <source src="talking.mp4" type="video/mp4">
+    </video>
+
+    <div id="overlay">
+        <span id="status-tag">SKEPTIC MODE</span><br>
+        <div id="subtitle">Click the button to start the challenge...</div>
+    </div>
+</div>
+
+<div id="chat-pane">
+    <div id="history"></div>
+    <button onclick="startListening()">🎤 START SPEAKING</button>
+</div>
+
+<script>
+    const vIdle = document.getElementById('v-idle');
+    const vTalk = document.getElementById('v-talk');
+    const subtitle = document.getElementById('subtitle');
+    const statusTag = document.getElementById('status-tag');
+
+    // 语音合成（AI说话）
+    const synth = window.speechSynthesis;
+
+    function aiSpeak(text, isSuccess) {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'en-US';
+        
+        utter.onstart = () => {
+            vIdle.classList.add('hidden');
+            vTalk.classList.remove('hidden'); // 切换到说话视频
+        };
+        utter.onend = () => {
+            vTalk.classList.add('hidden');
+            vIdle.classList.remove('hidden'); // 切换回静止视频
+        };
+
+        if(isSuccess) {
+            statusTag.innerText = "LOGIC ACCEPTED";
+            statusTag.style.background = "green";
+        }
+
+        subtitle.innerText = text;
+        synth.speak(utter);
+    }
+
+    // 语音识别（学生说话）
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-US';
+
+    function startListening() {
+        recognition.start();
+        subtitle.innerText = "Listening to your logic...";
+    }
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        addMessage(transcript, 'user-msg');
+        checkMetaphor(transcript.toLowerCase());
+    };
+
+    function checkMetaphor(text) {
+        let response = "";
+        const win = text.includes("only one") && text.includes("just like") && text.includes("because");
+
+        if(win) {
+            response = "I am impressed. Your use of a metaphor bridges the gap between a single person and a global impact. I believe you now.";
+        } else {
+            response = "Your words are empty. Without a metaphoric bridge, you are just a statistic. Why should I care?";
+        }
+
+        setTimeout(() => {
+            addMessage(response, 'ai-msg');
+            aiSpeak(response, win);
+        }, 500);
+    }
+
+    function addMessage(text, type) {
+        const div = document.createElement('div');
+        div.className = `msg ${type}`;
+        div.innerText = text;
+        document.getElementById('history').appendChild(div);
+    }
+</script>
+</body>
+</html>
